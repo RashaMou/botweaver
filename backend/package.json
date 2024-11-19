@@ -4,7 +4,9 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "tsc"
+    "build": "tsc",
+    "server": "tsx src/index.ts",
+    "start": "node dist/index.js"
   },
   "type": "module",
   "keywords": [],
@@ -13,11 +15,13 @@
   "description": "",
   "devDependencies": {
     "@types/express": "^5.0.0",
+    "@types/jsonwebtoken": "^9.0.7",
     "@types/node": "^22.9.1",
     "typescript": "^5.6.3"
   },
   "dependencies": {
     "express": "^4.21.1",
+    "jsonwebtoken": "^9.0.2",
     "winston": "^3.17.0"
   }
 }
