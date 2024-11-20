@@ -1,27 +1,38 @@
 import jwt from "jsonwebtoken";
 import { jwtConfig } from "@/config/jwt.config";
 import { TokenError } from "./token.errors";
+import { Response } from "express";
+import {
+  accessTokenCookieConfig,
+  refreshTokenCookieConfig,
+} from "@/config/cookie.config";
 
-interface TokenPayload {
+interface AccessTokenPayload {
   userId: string;
 }
 
-export interface RefreshTokenPayload extends TokenPayload {
+export interface RefreshTokenPayload extends AccessTokenPayload {
   version: string; // for token rotation
   family: string; // to group related refresh tokens
+  expiresAt: Date;
 }
 
 export const tokenUtils = {
   generateAccessToken(userId: string): string {
     try {
       return jwt.sign(
-        { userId } as TokenPayload,
+        { userId } as AccessTokenPayload,
         jwtConfig.accessToken.secret,
         { expiresIn: jwtConfig.accessToken.expiresIn },
       );
     } catch (error) {
       throw new TokenError("Failed to generate access token");
     }
+  },
+
+  clearAuthCookies(res: Response) {
+    res.clearCookie("accessToken", accessTokenCookieConfig);
+    res.clearCookie("refreshToken", refreshTokenCookieConfig);
   },
 
   generateRefreshToken(
@@ -57,9 +68,12 @@ export const tokenUtils = {
     }
   },
 
-  verifyAccessToken(token: string): TokenPayload {
+  verifyAccessToken(token: string): AccessTokenPayload {
     try {
-      return jwt.verify(token, jwtConfig.accessToken.secret) as TokenPayload;
+      return jwt.verify(
+        token,
+        jwtConfig.accessToken.secret,
+      ) as AccessTokenPayload;
     } catch (error) {
       if (error instanceof jwt.TokenExpiredError) {
         throw new TokenError("Access token expired");
