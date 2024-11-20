@@ -80,6 +80,60 @@ router.post(
     // 5. store new refresh token in db (invalidating old ones)
     // 6. set httpOnly cookies with tokens
     // 7. return user info and success message
+    if (!req.body.email || !req.body.password) {
+      throw new ValidationError("Email and password are required", 400);
+    }
+
+    const isValidEmail = isEmail(req.body.email);
+
+    if (!isValidEmail) throw new ValidationError("Invalid email format", 400);
+
+    const user = await User.findOne({ email: req.body.email.toLowerCase() });
+
+    if (!user) throw new AuthenticationError("Invalid email or password", 401);
+
+    const isValidPassword = await user.comparePassword(
+      req.body.password.trim(),
+    );
+
+    if (!isValidPassword)
+      throw new AuthenticationError("Invalid email or password", 401);
+
+    try {
+      const newAccessToken = tokenUtils.generateAccessToken(user.id);
+      const { token, family, version } = tokenUtils.generateRefreshToken(
+        user.id,
+      );
+
+      user.refreshTokens = [];
+
+      user.refreshTokens.push({
+        family,
+        version,
+        expiresAt: new Date(Date.now() + jwtConfig.refreshToken.expiresInMs),
+        userId: user.id,
+      });
+
+      user.lastLogin = new Date();
+
+      await user.save();
+      res.cookie("accessToken", newAccessToken, accessTokenCookieConfig);
+      res.cookie("refreshToken", token, refreshTokenCookieConfig);
+
+      return res.status(200).json({
+        user: {
+          id: user.id,
+          email: user.email,
+          createdAt: user.createdAt,
+        },
+        message: "Login successful",
+      });
+    } catch (error) {
+      throw new AuthenticationError(
+        `Failed to process login. Please try again`,
+        500,
+      );
+    }
   }),
 );
 
