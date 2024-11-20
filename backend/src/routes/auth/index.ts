@@ -143,13 +143,90 @@ router.post(
     // 1. extract refresh token from cookies
     // 2. validate refresh token authenticity
     // 3. check if refresh token exists and is valid in db
-    // 4. generate new access token (and optionally new refresh token)
-    // 5. if generating new refresh token:
+    // 3a. if token was already used, invalidate entire token family (reuse
+    // attack)
+    // 3b. log security event and force re-authentication
+    // 4. generate new access token
+    // 5. generate new refresh token:
     //    - invalidate old refresh token in db
     //    - store new refresh token
     //    - update cookie
-    // 6. otherwise, just update access token cookie
-    // 7. return success response
+    // 6. return success response
+
+    if (!req.body.refreshToken) {
+      throw new ValidationError("Refresh token is required", 400);
+    }
+
+    let tokenData;
+    try {
+      tokenData = tokenUtils.verifyRefreshToken(req.body.refreshToken);
+    } catch {
+      throw new AuthenticationError("Invalid refresh token", 401);
+    }
+
+    const { version, family, expiresAt } = tokenData;
+    if (!version || !family || !expiresAt) {
+      throw new AuthenticationError("Invalid refresh token format", 401);
+    }
+
+    if (new Date(expiresAt) <= new Date()) {
+      throw new AuthenticationError("Refresh token expired", 401);
+    }
+
+    const user = await User.findOne({
+      refreshTokens: {
+        $elemMatch: {
+          family,
+          version,
+          expiresAt: { $gt: new Date() },
+        },
+      },
+    });
+
+    if (!user) {
+      throw new AuthenticationError("Invalid refresh token", 401);
+    }
+
+    // Token reuse detection
+    const tokenFamily = user.refreshTokens.filter((t) => t.family === family);
+    const latestVersion = Math.max(
+      ...tokenFamily.map((t) => parseInt(t.version)),
+    );
+
+    if (parseInt(version) < latestVersion) {
+      user.refreshTokens = user.refreshTokens.filter(
+        (t) => t.family !== family,
+      );
+      await user.save();
+
+      logger.warn(`Token reuse detected for user ${user.id}`);
+      tokenUtils.clearAuthCookies(res);
+
+      throw new AuthenticationError(
+        "Security issue detected. Please login again",
+        403,
+      );
+    }
+
+    // Generate new tokens
+    const newAccessToken = tokenUtils.generateAccessToken(user.id);
+    const newRefreshToken = tokenUtils.generateRefreshToken(user.id);
+
+    user.refreshTokens = [
+      {
+        family: newRefreshToken.family,
+        version: newRefreshToken.version,
+        expiresAt: new Date(Date.now() + jwtConfig.refreshToken.expiresInMs),
+        userId: user.id,
+      },
+    ];
+
+    await user.save();
+
+    res.cookie("accessToken", newAccessToken, accessTokenCookieConfig);
+    res.cookie("refreshToken", newRefreshToken.token, refreshTokenCookieConfig);
+
+    return res.json({ success: true });
   }),
 );
 
