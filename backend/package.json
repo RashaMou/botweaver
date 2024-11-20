@@ -14,12 +14,14 @@
   "license": "ISC",
   "description": "",
   "devDependencies": {
+    "@types/cookie-parser": "^1.4.7",
     "@types/express": "^5.0.0",
     "@types/jsonwebtoken": "^9.0.7",
     "@types/node": "^22.9.1",
     "typescript": "^5.6.3"
   },
   "dependencies": {
+    "cookie-parser": "^1.4.7",
     "express": "^4.21.1",
     "jsonwebtoken": "^9.0.2",
     "winston": "^3.17.0"

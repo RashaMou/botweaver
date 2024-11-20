@@ -1,5 +1,9 @@
 import { Router, Request, Response } from "express";
 import { asyncHandler } from "@/routes/middleware/errorHandler";
+import {
+  accessTokenCookieConfig,
+  refreshTokenCookieConfig,
+} from "@/config/cookie.config";
 
 const router = Router();
 
