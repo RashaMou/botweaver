@@ -6,7 +6,7 @@ interface TokenPayload {
   userId: string;
 }
 
-interface RefreshTokenPayload extends TokenPayload {
+export interface RefreshTokenPayload extends TokenPayload {
   version: string; // for token rotation
   family: string; // to group related refresh tokens
 }
