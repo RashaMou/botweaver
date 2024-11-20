@@ -230,4 +230,35 @@ router.post(
   }),
 );
 
+router.post(
+  "/logout",
+  asyncHandler(async (req: Request, res: Response) => {
+    // 1. verify user is authenticated (check access token in cookies)
+    // 2. clear refresh tokens from DB
+    // 3. clear both cookies (access and refresh tokens)
+    // 4. return success message
+    const accessToken = req.cookies.accessToken;
+
+    if (!accessToken) throw new AuthenticationError("Not authenticated", 401);
+
+    try {
+      const decoded = tokenUtils.verifyAccessToken(accessToken);
+      const user = await User.findById(decoded.userId);
+
+      if (user) {
+        user.refreshTokens = [];
+        await user.save();
+      }
+    } catch (error) {
+      throw new AuthenticationError("Failed to process logout", 500);
+    }
+
+    tokenUtils.clearAuthCookies(res);
+
+    return res.status(200).json({
+      message: "Logout successful",
+    });
+  }),
+);
+
 export default router;
