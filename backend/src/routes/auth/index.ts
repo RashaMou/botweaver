@@ -1,6 +1,6 @@
 import { Router, Request, Response } from "express";
 import { asyncHandler } from "@/routes/middleware/errorHandler";
-import isEmail from "validator/es/lib/isEmail";
+import validator from "validator";
 import { User } from "@/models/user.model";
 import { tokenUtils } from "@/utils/token.utils";
 import { jwtConfig } from "@/config/jwt.config";
@@ -22,7 +22,7 @@ router.post(
       throw new ValidationError("Email and password are required", 400);
     }
     // validate email
-    const isValidEmail = isEmail(req.body.email);
+    const isValidEmail = validator.isEmail(req.body.email);
     if (!isValidEmail) throw new ValidationError("Invalid email format", 400);
 
     // validate password
@@ -84,7 +84,7 @@ router.post(
       throw new ValidationError("Email and password are required", 400);
     }
 
-    const isValidEmail = isEmail(req.body.email);
+    const isValidEmail = validator.isEmail(req.body.email);
 
     if (!isValidEmail) throw new ValidationError("Invalid email format", 400);
 
