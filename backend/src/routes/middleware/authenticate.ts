@@ -31,7 +31,7 @@ export const authenticate = (
 
     const payload = jwt.verify(
       accessToken,
-      process.env.JWT_SECRET!,
+      process.env.JWT_ACCESS_SECRET! || "keepitsecretkeepitsafe",
     ) as UserPayload;
 
     req.user = payload;
