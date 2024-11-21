@@ -50,11 +50,15 @@ export const tokenUtils = {
       const tokenFamily = family || crypto.randomUUID();
       const tokenVersion = crypto.randomUUID();
 
+      const expiresAt = new Date(
+        Date.now() + jwtConfig.refreshToken.expiresInMs,
+      );
       const token = jwt.sign(
         {
           userId,
           version: tokenVersion,
           family: tokenFamily,
+          expiresAt,
         } as RefreshTokenPayload,
         jwtConfig.refreshToken.secret,
         { expiresIn: jwtConfig.refreshToken.expiresIn },
