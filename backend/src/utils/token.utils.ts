@@ -1,11 +1,7 @@
 import jwt from "jsonwebtoken";
 import { jwtConfig } from "@/config/jwt.config";
-import { TokenError } from "./token.errors";
+import { TokenError } from "@/errors/token.errors";
 import { Response } from "express";
-import {
-  accessTokenCookieConfig,
-  refreshTokenCookieConfig,
-} from "@/config/cookie.config";
 
 interface AccessTokenPayload {
   userId: string;
@@ -31,8 +27,14 @@ export const tokenUtils = {
   },
 
   clearAuthCookies(res: Response) {
-    res.clearCookie("accessToken", accessTokenCookieConfig);
-    res.clearCookie("refreshToken", refreshTokenCookieConfig);
+    const clearCookieConfig = {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict" as const,
+      path: "/",
+    };
+    res.clearCookie("accessToken", clearCookieConfig);
+    res.clearCookie("refreshToken", clearCookieConfig);
   },
 
   generateRefreshToken(
