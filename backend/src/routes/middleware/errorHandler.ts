@@ -1,8 +1,8 @@
 import { Request, Response, NextFunction, RequestHandler } from "express";
 import jwt from "jsonwebtoken";
 import logger from "@/logger";
-import { AuthenticationError } from "@/errors/auth.errors";
-import { ValidationError } from "@/errors/base.errors";
+import { AuthenticationError } from "@/errors/types/auth.errors";
+import { ValidationError } from "@/errors/types/base.errors";
 import { MongoServerError } from "mongodb";
 
 type AsyncHandlerFunction = (
@@ -22,7 +22,18 @@ export const asyncHandler = (fn: AsyncHandlerFunction): RequestHandler => {
     } catch (error: unknown) {
       // Custom Error Handling
       if (error instanceof AuthenticationError) {
-        res.status(error.statusCode).json({ error: error.message });
+        res.status(error.statusCode).json({
+          error: error.error,
+          details: error.message,
+        });
+        return;
+      }
+
+      if (error instanceof ValidationError) {
+        res.status(error.statusCode).json({
+          error: error.error,
+          details: error.message,
+        });
         return;
       }
 
@@ -31,11 +42,9 @@ export const asyncHandler = (fn: AsyncHandlerFunction): RequestHandler => {
         res.status(400).json({ error: "This email is already registered" });
         return;
       }
+
       if (isValidationError(error)) {
-        res.status(400).json({
-          error: "Invalid data provided",
-          details: error.message,
-        });
+        res.status(400).json({ error: error.error, details: error.details });
         return;
       }
 

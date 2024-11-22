@@ -9,31 +9,33 @@ import {
   refreshTokenCookieConfig,
 } from "@/config/cookie.config";
 import logger from "@/logger";
-import { AuthenticationError } from "@/errors/auth.errors";
-import { ValidationError } from "@/errors/base.errors";
+import { AuthenticationError } from "@/errors/types/auth.errors";
+import { ValidationError } from "@/errors/types/base.errors";
+import AUTH_ERRORS from "@/errors/constants/auth.constants";
+import VALIDATION_ERRORS from "@/errors/constants/validation.constants";
 
 const router = Router();
 
 router.post(
   "/register",
   asyncHandler(async (req: Request, res: Response) => {
-    // Removed NextFunction since we're not using it
     if (!req.body.email || !req.body.password) {
-      throw new ValidationError("Email and password are required", 400);
+      throw new ValidationError(VALIDATION_ERRORS.CREDENTIALS);
     }
     // validate email
     const isValidEmail = validator.isEmail(req.body.email);
-    if (!isValidEmail) throw new ValidationError("Invalid email format", 400);
+    if (!isValidEmail)
+      throw new ValidationError(VALIDATION_ERRORS.EMAIL_FORMAT);
 
     // validate password
     if (req.body.password.length < 8) {
-      throw new ValidationError("Password must be at least 8 characters", 400);
+      throw new ValidationError(VALIDATION_ERRORS.PASSWORD_LENGTH);
     }
 
     // check if user exists
     const user = await User.findOne({ email: req.body.email.toLowerCase() });
     if (user) {
-      throw new ValidationError("User already exists. Please sign in", 400);
+      throw new ValidationError(VALIDATION_ERRORS.USER_EXISTS);
     }
 
     // create new user, tokens, and set cookies
@@ -81,23 +83,24 @@ router.post(
     // 6. set httpOnly cookies with tokens
     // 7. return user info and success message
     if (!req.body.email || !req.body.password) {
-      throw new ValidationError("Email and password are required", 400);
+      throw new ValidationError(VALIDATION_ERRORS.CREDENTIALS);
     }
 
     const isValidEmail = validator.isEmail(req.body.email);
 
-    if (!isValidEmail) throw new ValidationError("Invalid email format", 400);
+    if (!isValidEmail)
+      throw new ValidationError(VALIDATION_ERRORS.EMAIL_FORMAT);
 
     const user = await User.findOne({ email: req.body.email.toLowerCase() });
 
-    if (!user) throw new AuthenticationError("Invalid email or password", 401);
+    if (!user) throw new AuthenticationError(AUTH_ERRORS.INVALID_CREDENTIALS);
 
     const isValidPassword = await user.comparePassword(
       req.body.password.trim(),
     );
 
     if (!isValidPassword)
-      throw new AuthenticationError("Invalid email or password", 401);
+      throw new AuthenticationError(AUTH_ERRORS.INVALID_CREDENTIALS);
 
     try {
       const newAccessToken = tokenUtils.generateAccessToken(user.id);
@@ -129,10 +132,7 @@ router.post(
         message: "Login successful",
       });
     } catch (error) {
-      throw new AuthenticationError(
-        `Failed to process login. Please try again`,
-        500,
-      );
+      throw new AuthenticationError(AUTH_ERRORS.LOGIN_FAILED);
     }
   }),
 );
@@ -154,23 +154,23 @@ router.post(
     // 6. return success response
 
     if (!req.body.refreshToken) {
-      throw new ValidationError("Refresh token is required", 400);
+      throw new ValidationError(VALIDATION_ERRORS.REFRESH_TOKEN_REQUIRED);
     }
 
     let tokenData;
     try {
       tokenData = tokenUtils.verifyRefreshToken(req.body.refreshToken);
     } catch {
-      throw new AuthenticationError("Invalid refresh token", 401);
+      throw new AuthenticationError(AUTH_ERRORS.INVALID_REFRESH_TOKEN);
     }
 
     const { version, family, expiresAt } = tokenData;
     if (!version || !family || !expiresAt) {
-      throw new AuthenticationError("Invalid refresh token format", 401);
+      throw new AuthenticationError(AUTH_ERRORS.INVALID_TOKEN_FORMAT);
     }
 
     if (new Date(expiresAt) <= new Date()) {
-      throw new AuthenticationError("Refresh token expired", 401);
+      throw new AuthenticationError(AUTH_ERRORS.TOKEN_EXPIRED);
     }
 
     const user = await User.findOne({
@@ -184,7 +184,7 @@ router.post(
     });
 
     if (!user) {
-      throw new AuthenticationError("Invalid refresh token", 401);
+      throw new AuthenticationError(AUTH_ERRORS.INVALID_REFRESH_TOKEN);
     }
 
     // Token reuse detection
@@ -202,10 +202,7 @@ router.post(
       logger.warn(`Token reuse detected for user ${user.id}`);
       tokenUtils.clearAuthCookies(res);
 
-      throw new AuthenticationError(
-        "Security issue detected. Please login again",
-        403,
-      );
+      throw new AuthenticationError(AUTH_ERRORS.TOKEN_REUSE_DETECTED);
     }
 
     // Generate new tokens
@@ -239,7 +236,8 @@ router.post(
     // 4. return success message
     const accessToken = req.cookies.accessToken;
 
-    if (!accessToken) throw new AuthenticationError("Not authenticated", 401);
+    if (!accessToken)
+      throw new AuthenticationError(AUTH_ERRORS.NOT_AUTHENTICATED);
 
     try {
       const decoded = tokenUtils.verifyAccessToken(accessToken);
@@ -250,7 +248,7 @@ router.post(
         await user.save();
       }
     } catch (error) {
-      throw new AuthenticationError("Failed to process logout", 500);
+      throw new AuthenticationError(AUTH_ERRORS.LOGOUT_FAILED);
     }
 
     tokenUtils.clearAuthCookies(res);

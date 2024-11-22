@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from "express";
-import { AuthenticationError } from "@/errors/auth.errors";
+import { AuthenticationError } from "@/errors/types/auth.errors";
 import jwt from "jsonwebtoken";
+import AUTH_ERRORS from "@/errors/constants/auth.constants";
 
 interface UserPayload {
   id: string;
@@ -27,7 +28,8 @@ export const authenticate = (
   // 4. If invalid, return 401 unauthorized
   try {
     const accessToken = req.cookies.accessToken;
-    if (!accessToken) throw new AuthenticationError("Not authenticated", 401);
+    if (!accessToken)
+      throw new AuthenticationError(AUTH_ERRORS.NOT_AUTHENTICATED);
 
     const payload = jwt.verify(
       accessToken,

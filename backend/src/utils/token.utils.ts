@@ -1,6 +1,6 @@
 import jwt from "jsonwebtoken";
 import { jwtConfig } from "@/config/jwt.config";
-import { TokenError } from "@/errors/token.errors";
+import { TokenError } from "@/errors/types/token.errors";
 import { Response } from "express";
 
 interface AccessTokenPayload {
