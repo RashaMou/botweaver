@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction, RequestHandler } from "express";
+import { env } from "@/config/env.config";
 import jwt from "jsonwebtoken";
 import logger from "@/logger";
 import { AuthenticationError } from "@/errors/types/auth.errors";
@@ -59,7 +60,7 @@ export const asyncHandler = (fn: AsyncHandlerFunction): RequestHandler => {
       logError(error);
 
       const errorResponse =
-        process.env.NODE_ENV === "production"
+        env.NODE_ENV === "production"
           ? { error: "An unexpected error occurred. Please try again later." }
           : { error: error instanceof Error ? error.message : String(error) };
       res.status(500).json(errorResponse);
@@ -99,8 +100,6 @@ export const errorHandler = (
   res.status(500).json({
     success: false,
     error:
-      process.env.NODE_ENV === "production"
-        ? "Internal server error"
-        : err.message,
+      env.NODE_ENV === "production" ? "Internal server error" : err.message,
   });
 };
