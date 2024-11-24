@@ -1,0 +1,10 @@
+**/.git
+**/node_modules
+**/.env
+**/dist
+npm-debug.log
+**/*.md
+**/.vscode
+**/coverage
+**/.npm
+**/.DS_Store
