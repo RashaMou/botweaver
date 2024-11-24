@@ -2,7 +2,8 @@ import express, { Express } from "express";
 import routes from "./routes";
 import cookieParser from "cookie-parser";
 import { errorHandler } from "./routes/middleware/errorHandler";
-import { rateLimiter } from "./routes/middleware/rateLimiter";
+import { createRateLimiter } from "./routes/middleware/rateLimiter";
+import { REDIS_CONFIG } from "./config/redis.config";
 
 const app: Express = express();
 
@@ -15,6 +16,23 @@ app.use(routes);
 // Error handling
 app.use(errorHandler);
 // Rate limiter
-app.use(rateLimiter);
+app.use(
+  createRateLimiter({
+    authenticated: {
+      windowSize: REDIS_CONFIG.RATE_LIMIT.API.AUTH.duration,
+      limit: REDIS_CONFIG.RATE_LIMIT.API.AUTH.points,
+    },
+    unauthenticated: {
+      windowSize: REDIS_CONFIG.RATE_LIMIT.API.GENERAL.duration,
+      limit: REDIS_CONFIG.RATE_LIMIT.API.GENERAL.points,
+    },
+    violations: {
+      memoryDuration: REDIS_CONFIG.RATE_LIMIT.VIOLATIONS.MEMORY_DURATION,
+    },
+    keyPrefixes: {
+      ip: REDIS_CONFIG.KEY_PREFIXES.RATE_LIMIT.IP,
+    },
+  }),
+);
 
 export default app;
