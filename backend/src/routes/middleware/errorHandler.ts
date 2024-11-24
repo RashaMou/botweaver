@@ -5,6 +5,7 @@ import logger from "@/logger";
 import { AuthenticationError } from "@/errors/types/auth.errors";
 import { ValidationError } from "@/errors/types/base.errors";
 import { MongoServerError } from "mongodb";
+import { RateLimitError } from "@/errors/types/ratelimit.errors";
 
 type AsyncHandlerFunction = (
   req: Request,
@@ -49,6 +50,11 @@ export const asyncHandler = (fn: AsyncHandlerFunction): RequestHandler => {
         return;
       }
 
+      if (isRateLimitError(error)) {
+        res.status(429).json({ error: error.error, details: error.details });
+        return;
+      }
+
       // JWT errors
       if (error instanceof jwt.JsonWebTokenError) {
         const status = error.name === "TokenExpiredError" ? 401 : 401;
@@ -81,6 +87,12 @@ const isValidationError = (error: unknown): error is ValidationError =>
   error !== null &&
   "name" in error &&
   error.name === "ValidationError";
+
+const isRateLimitError = (error: unknown): error is RateLimitError =>
+  typeof error === "object" &&
+  error !== null &&
+  "name" in error &&
+  error.name === "RateLimitError";
 
 const logError = (error: unknown) => {
   if (error instanceof Error) {

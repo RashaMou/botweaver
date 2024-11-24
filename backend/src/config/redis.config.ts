@@ -13,6 +13,10 @@ export const REDIS_CONFIG = {
   },
 
   RATE_LIMIT: {
+    VIOLATIONS: {
+      MAX_VIOLATIONS: 3,
+      MEMORY_DURATION: 86400, // 24h
+    },
     API: {
       AUTH: {
         points: 20, // number of requests
@@ -45,6 +49,8 @@ export const REDIS_CONFIG = {
       USER: "rl:user:",
       BOT: "rl:bot:",
       GLOBAL: "rl:global:",
+      VIOLATIONS: "rl:violations:",
+      BLOCKS: "rl:blocks:",
     },
   },
 };

@@ -1,6 +1,8 @@
 import Redis, { Pipeline, Result } from "ioredis";
 import { REDIS_CONFIG } from "@/config/redis.config";
 import logger from "@/logger";
+import { RateLimitError } from "@/errors/types/ratelimit.errors";
+import RATE_LIMIT_ERRORS from "@/errors/constants/ratelimit.constants";
 
 class RedisService {
   private static instance: RedisService;
@@ -99,6 +101,57 @@ class RedisService {
         resetTime: Math.floor(now / 1000) + windowSize,
       };
     }
+  }
+
+  public async trackViolations(
+    identifier: string,
+    blockDuration: number,
+  ): Promise<{
+    violations: number;
+    isBlocked: boolean;
+    blockExpiry: number | null;
+  }> {
+    const violationKey = REDIS_CONFIG.RATE_LIMIT.VIOLATIONS + identifier;
+    const now = Math.floor(Date.now() / 1000);
+
+    const pipeline = this.client.pipeline() as Pipeline;
+
+    // increment violation count
+    pipeline.incr(violationKey);
+    // set expiry time if not already set
+    pipeline.expire(
+      violationKey,
+      REDIS_CONFIG.RATE_LIMIT.VIOLATIONS.MEMORY_DURATION,
+      "NX",
+    );
+    // get current violation count
+    pipeline.get(violationKey);
+
+    const results = (await pipeline.exec()) as [Error | null, any][];
+
+    if (!results || !results[2] || !results[2][0]) {
+      throw new RateLimitError(RATE_LIMIT_ERRORS.VIOLATION_TRACKER);
+    }
+
+    const violations = parseInt(results[2][1] as string);
+
+    // if violations threshhold exceeded, set a block
+    if (violations >= REDIS_CONFIG.RATE_LIMIT.VIOLATIONS.MAX_VIOLATIONS) {
+      const blockKey = REDIS_CONFIG.KEY_PREFIXES.RATE_LIMIT.BLOCKS + identifier;
+      await this.client.set(blockKey, now, "EX", blockDuration);
+
+      return {
+        violations,
+        isBlocked: true,
+        blockExpiry: now + blockDuration,
+      };
+    }
+
+    return {
+      violations,
+      isBlocked: false,
+      blockExpiry: null,
+    };
   }
 
   public getClient(): Redis {
