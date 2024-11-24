@@ -15,6 +15,7 @@ interface EnvConfig {
   TELEGRAM_BOT_TOKEN: string;
   JWT_SECRET: string;
   PORT: string;
+  REDIS_HOST: string;
 }
 
 const getEnvConfig = (): EnvConfig => {
@@ -32,6 +33,7 @@ const getEnvConfig = (): EnvConfig => {
       (process.env.NODE_ENV as "development" | "production" | "test") ||
       "development",
     MONGODB_URI: process.env.MONGODB_URI!,
+    REDIS_HOST: process.env.REDIS_HOST!,
     TELEGRAM_WEBHOOK_URL: process.env.TELEGRAM_WEBHOOK_URL!,
     TELEGRAM_WEBHOOK_DEV_URL: process.env.TELEGRAM_WEBHOOK_DEV_URL!,
     JWT_SECRET: process.env.JWT_SECRET!,
