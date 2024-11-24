@@ -1,5 +1,5 @@
 import { TELEGRAM_CONFIG } from "@/config/telegram.config";
-import { Message } from "node-telegram-bot-api";
+import { Message, Update } from "node-telegram-bot-api";
 import { TelegramError } from "@/errors/types/telegram.errors";
 import TELEGRAM_ERRORS from "@/errors/constants/telegram.constants";
 import logger from "@/logger";
@@ -193,6 +193,18 @@ class TelegramService {
   private validateMessage(chatId: string, message: string) {
     if (!chatId) throw new TelegramError(TELEGRAM_ERRORS.CHAT_ID_MISSING);
     if (!message) throw new TelegramError(TELEGRAM_ERRORS.MESSAGE_TEXT_MISSING);
+  }
+
+  public async processUpdate(update: Update) {
+    try {
+      // call FlowEngineService with TelegramUpdate
+      logger.info("Processing message:", {
+        chatId: update.message?.chat.id,
+        text: update.message?.text,
+      });
+    } catch (error) {
+      logger.error("Error in processUpdate:", error);
+    }
   }
 }
 
