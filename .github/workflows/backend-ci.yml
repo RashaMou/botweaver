@@ -30,6 +30,7 @@ jobs:
           node-version: "20.x"
 
       - name: Install dependencies
+        working-directory: backend
         run: npm ci
 
       - name: Type check
@@ -46,5 +47,6 @@ jobs:
           JWT_REFRESH_SECRET: test_refresh_secret
         run: npm test
 
-      - name: Build
+      - name: Run build
+        working-directory: backend
         run: npm run build
