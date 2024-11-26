@@ -2,6 +2,7 @@ import { TELEGRAM_CONFIG } from "@/config/telegram.config";
 import { Message, Update } from "node-telegram-bot-api";
 import { TelegramError } from "@/errors/types/telegram.errors";
 import TELEGRAM_ERRORS from "@/errors/constants/telegram.constants";
+import { Event } from "@/types/events";
 import logger from "@/logger";
 import { env } from "@/config/env.config";
 
@@ -197,7 +198,8 @@ class TelegramService {
 
   public async processUpdate(update: Update) {
     try {
-      // call FlowEngineService with TelegramUpdate
+      const event = this.toEvent(update);
+      // call FlowEngineService with event
       logger.info("Processing message:", {
         chatId: update.message?.chat.id,
         text: update.message?.text,
@@ -205,6 +207,43 @@ class TelegramService {
     } catch (error) {
       logger.error("Error in processUpdate:", error);
     }
+  }
+
+  private toEvent(update: Update): Event | null {
+    if (!update.message && !update.callback_query?.message) {
+      return null;
+    }
+
+    if (update.callback_query && update.callback_query.message) {
+      return {
+        id: update.update_id.toString(),
+        platformId: "telegram",
+        channelId: update.callback_query.message?.chat.id.toString(),
+        userId: update.callback_query.from.id.toString(),
+        timestamp: new Date(update.callback_query.message?.date * 1000),
+        text: update.callback_query.data,
+        type: "button_click",
+      };
+    }
+
+    if (update.message) {
+      return {
+        id: update.update_id.toString(),
+        platformId: "telegram",
+        channelId: update.message.chat.id.toString(),
+        userId: update.message.from?.id.toString() ?? "",
+        timestamp: new Date(update.message.date * 1000),
+        text: update.message.text ?? "",
+        type: "message",
+        metadata: {
+          replyTo: update.message.reply_to_message?.message_id.toString(),
+          isForwarded: Boolean(
+            update.message.forward_from || update.message.forward_from_chat,
+          ),
+        },
+      };
+    }
+    return null;
   }
 }
 
