@@ -1,3 +1,5 @@
+import { env } from "./env.config";
+
 interface JWTConfig {
   accessToken: {
     secret: string;
@@ -13,12 +15,12 @@ interface JWTConfig {
 
 const jwtConfig: JWTConfig = {
   accessToken: {
-    secret: process.env.JWT_ACCESS_SECRET || "keepitsecretkeepitsafe",
+    secret: env.JWT_SECRET || "keepitsecretkeepitsafe",
     expiresIn: "15m",
     expiresInMs: 900000,
   },
   refreshToken: {
-    secret: process.env.JWT_ACCESS_SECRET || "keepitrefreshkeepitsafe",
+    secret: env.JWT_SECRET || "keepitrefreshkeepitsafe",
     expiresIn: "7d",
     expiresInMs: 604800000,
   },

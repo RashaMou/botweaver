@@ -1,4 +1,5 @@
 import jwt from "jsonwebtoken";
+import { env } from "@/config/env.config";
 import { jwtConfig } from "@/config/jwt.config";
 import { TokenError } from "@/errors/types/token.errors";
 import { Response } from "express";
@@ -29,7 +30,7 @@ export const tokenUtils = {
   clearAuthCookies(res: Response) {
     const clearCookieConfig = {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: env.NODE_ENV === "production",
       sameSite: "strict" as const,
       path: "/",
     };

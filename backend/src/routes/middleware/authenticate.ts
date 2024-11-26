@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { AuthenticationError } from "@/errors/types/auth.errors";
+import { env } from "@/config/env.config";
 import jwt from "jsonwebtoken";
 import AUTH_ERRORS from "@/errors/constants/auth.constants";
 
@@ -31,10 +32,7 @@ export const authenticate = (
     if (!accessToken)
       throw new AuthenticationError(AUTH_ERRORS.NOT_AUTHENTICATED);
 
-    const payload = jwt.verify(
-      accessToken,
-      process.env.JWT_ACCESS_SECRET! || "keepitsecretkeepitsafe",
-    ) as UserPayload;
+    const payload = jwt.verify(accessToken, env.JWT_SECRET) as UserPayload;
 
     req.user = payload;
     next();

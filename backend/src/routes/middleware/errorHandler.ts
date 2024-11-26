@@ -1,9 +1,11 @@
 import { Request, Response, NextFunction, RequestHandler } from "express";
+import { env } from "@/config/env.config";
 import jwt from "jsonwebtoken";
 import logger from "@/logger";
 import { AuthenticationError } from "@/errors/types/auth.errors";
 import { ValidationError } from "@/errors/types/base.errors";
 import { MongoServerError } from "mongodb";
+import { RateLimitError } from "@/errors/types/ratelimit.errors";
 
 type AsyncHandlerFunction = (
   req: Request,
@@ -48,6 +50,11 @@ export const asyncHandler = (fn: AsyncHandlerFunction): RequestHandler => {
         return;
       }
 
+      if (isRateLimitError(error)) {
+        res.status(429).json({ error: error.error, details: error.details });
+        return;
+      }
+
       // JWT errors
       if (error instanceof jwt.JsonWebTokenError) {
         const status = error.name === "TokenExpiredError" ? 401 : 401;
@@ -59,7 +66,7 @@ export const asyncHandler = (fn: AsyncHandlerFunction): RequestHandler => {
       logError(error);
 
       const errorResponse =
-        process.env.NODE_ENV === "production"
+        env.NODE_ENV === "production"
           ? { error: "An unexpected error occurred. Please try again later." }
           : { error: error instanceof Error ? error.message : String(error) };
       res.status(500).json(errorResponse);
@@ -81,6 +88,12 @@ const isValidationError = (error: unknown): error is ValidationError =>
   "name" in error &&
   error.name === "ValidationError";
 
+const isRateLimitError = (error: unknown): error is RateLimitError =>
+  typeof error === "object" &&
+  error !== null &&
+  "name" in error &&
+  error.name === "RateLimitError";
+
 const logError = (error: unknown) => {
   if (error instanceof Error) {
     logger.error(`Error: ${error.message}`, error.stack);
@@ -99,8 +112,6 @@ export const errorHandler = (
   res.status(500).json({
     success: false,
     error:
-      process.env.NODE_ENV === "production"
-        ? "Internal server error"
-        : err.message,
+      env.NODE_ENV === "production" ? "Internal server error" : err.message,
   });
 };

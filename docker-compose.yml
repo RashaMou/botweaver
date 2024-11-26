@@ -1,0 +1,38 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: docker/backend/Dockerfile
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./backend:/usr/src/app
+      - /usr/src/app/node_modules
+    environment:
+      - NODE_ENV=development
+      - MONGODB_URI=mongodb://mongodb:27017/botweaver
+      - REDIS_URI=redis://redis:6379
+    depends_on:
+      - mongodb
+      - redis
+
+  # MondoDB service
+  mongodb:
+    image: mongo:latest
+    volumes:
+      - mongodb_data:/data/db
+    ports:
+      - "27017:27017"
+
+  # Redis service
+  redis:
+    image: redis:alpine
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+
+# Named volumes for data persistance
+volumes:
+  mongodb_data:
+  redis_data:

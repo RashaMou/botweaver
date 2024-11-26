@@ -1,15 +1,9 @@
 import express, { Express } from "express";
-import * as dotenv from "dotenv";
-import { fileURLToPath } from "url";
-import { dirname, join } from "path";
 import routes from "./routes";
 import cookieParser from "cookie-parser";
 import { errorHandler } from "./routes/middleware/errorHandler";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-dotenv.config({ path: join(__dirname, "../.env") });
+import { createRateLimiter } from "./routes/middleware/rateLimiter";
+import { REDIS_CONFIG } from "./config/redis.config";
 
 const app: Express = express();
 
@@ -19,8 +13,26 @@ app.use(cookieParser());
 
 // Routes
 app.use(routes);
-
 // Error handling
 app.use(errorHandler);
+// Rate limiter
+app.use(
+  createRateLimiter({
+    authenticated: {
+      windowSize: REDIS_CONFIG.RATE_LIMIT.API.AUTH.duration,
+      limit: REDIS_CONFIG.RATE_LIMIT.API.AUTH.points,
+    },
+    unauthenticated: {
+      windowSize: REDIS_CONFIG.RATE_LIMIT.API.GENERAL.duration,
+      limit: REDIS_CONFIG.RATE_LIMIT.API.GENERAL.points,
+    },
+    violations: {
+      memoryDuration: REDIS_CONFIG.RATE_LIMIT.VIOLATIONS.MEMORY_DURATION,
+    },
+    keyPrefixes: {
+      ip: REDIS_CONFIG.KEY_PREFIXES.RATE_LIMIT.IP,
+    },
+  }),
+);
 
 export default app;
